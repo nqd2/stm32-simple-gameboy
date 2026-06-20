@@ -1,0 +1,795 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>STackM3D Title Screen Designer & Simulator (ILI9341)</title>
+    <!-- Tailwind CSS for modern developer interface styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Lucide Icons for interactive dashboard visual aids -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap');
+        
+        body {
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            background-color: #080b11;
+            background-image: radial-gradient(circle at 50% 50%, #111827 0%, #080b11 100%);
+        }
+        
+        .code-font {
+            font-family: 'Fira Code', monospace;
+        }
+
+        /* Simulated LCD CRT Screen effect with custom scanlines */
+        .lcd-screen-container {
+            position: relative;
+            background: #0d0e12;
+            border: 14px solid #1f2937;
+            border-radius: 20px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.85), 
+                        0 0 35px rgba(59, 130, 246, 0.15),
+                        inset 0 0 20px rgba(0, 0, 0, 0.9);
+        }
+        .lcd-screen-container::after {
+            content: " ";
+            display: block;
+            position: absolute;
+            top: 0; left: 0; bottom: 0; right: 0;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.3) 50%), linear-gradient(90deg, rgba(255, 0, 0, 0.04), rgba(0, 255, 0, 0.01), rgba(0, 0, 255, 0.04));
+            z-index: 10;
+            background-size: 100% 4px, 4px 100%;
+            pointer-events: none;
+            border-radius: 6px;
+        }
+        .glass-panel {
+            background: rgba(17, 24, 39, 0.7);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.07);
+        }
+    </style>
+</head>
+<body class="text-slate-100 min-h-screen p-4 md:p-8">
+
+    <div class="max-w-7xl mx-auto">
+        <!-- Header -->
+        <header class="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4 border-b border-slate-800 pb-6">
+            <div>
+                <div class="flex items-center gap-3">
+                    <span class="px-2.5 py-1 text-xs font-bold bg-blue-500/20 text-blue-400 border border-blue-500/30 rounded-full">TFT STackM3D Edition</span>
+                    <span class="text-slate-400 text-sm">Target TFT: ILI9341 (320x240 RGB565)</span>
+                </div>
+                <h1 class="text-3xl font-extrabold bg-gradient-to-r from-teal-400 via-blue-400 to-indigo-400 bg-clip-text text-transparent mt-1">
+                    STackM3D Home Screen Designer
+                </h1>
+            </div>
+            <div class="flex gap-2">
+                <button onclick="resetDefaults()" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-sm font-medium transition flex items-center gap-2 border border-slate-700">
+                    <i data-lucide="rotate-ccw" class="w-4 h-4"></i> Khôi phục mặc định
+                </button>
+                <a href="#code-section" class="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-sm font-medium transition flex items-center gap-2 shadow-lg shadow-blue-500/20">
+                    <i data-lucide="code" class="w-4 h-4"></i> Lấy mã C ngay
+                </a>
+            </div>
+        </header>
+
+        <!-- Main Workspace -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 mb-12">
+            
+            <!-- Left Side: Interactive Simulator & Hardware Controls -->
+            <div class="lg:col-span-5 flex flex-col gap-6">
+                
+                <!-- Physical Hardware Mockup -->
+                <div class="glass-panel rounded-2xl p-6 shadow-2xl relative overflow-hidden">
+                    <div class="absolute -top-24 -left-24 w-48 h-48 bg-blue-500/10 rounded-full blur-3xl pointer-events-none"></div>
+                    
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="flex items-center gap-2">
+                            <span class="w-2.5 h-2.5 bg-emerald-500 rounded-full animate-ping"></span>
+                            <span class="text-xs font-semibold text-emerald-400 uppercase tracking-wider">LIVE TFT SIMULATOR</span>
+                        </div>
+                        <div class="text-[10px] text-slate-400 bg-slate-900 px-2 py-1 rounded border border-slate-800">
+                            Resolution: 320 x 240 (Landscape)
+                        </div>
+                    </div>
+
+                    <!-- Simulator Canvas Core Frame -->
+                    <div class="flex justify-center my-2">
+                        <div class="lcd-screen-container p-1 bg-zinc-950">
+                            <!-- Visualizing exact ILI9341 aspect ratio -->
+                            <canvas id="iliCanvas" width="320" height="240" class="block rounded shadow-inner" style="width: 320px; height: 240px; image-rendering: pixelated;"></canvas>
+                        </div>
+                    </div>
+
+                    <!-- Physical Board Decorative Pins -->
+                    <div class="mt-4 pt-4 border-t border-slate-800/60 flex justify-between items-center text-[10px] text-slate-500 code-font">
+                        <div class="flex gap-2">
+                            <span>VCC</span><span>GND</span><span>CS</span><span>RESET</span><span>D/C</span><span>SDI</span><span>SCK</span><span>LED</span>
+                        </div>
+                        <div class="flex items-center gap-1.5 text-blue-400">
+                            <i data-lucide="cpu" class="w-3.5 h-3.5"></i>
+                            <span>SPI BUS ACTIVE</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Simulation Control Station -->
+                <div class="glass-panel rounded-2xl p-6">
+                    <h3 class="text-base font-bold text-slate-200 mb-4 flex items-center gap-2 border-b border-slate-800 pb-2">
+                        <i data-lucide="sliders" class="text-blue-400 w-4 h-4"></i> Cấu Hình Game StackM3D
+                    </h3>
+                    
+                    <div class="space-y-4">
+                        <!-- Presets Selector -->
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-400 mb-1.5">Màu Sắc Khối Tháp (Color Presets)</label>
+                            <select id="themePreset" onchange="applyPreset(this.value)" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-blue-500">
+                                <option value="pastel">Minimalist Peach (Màu Peach Pastel dịu mắt)</option>
+                                <option value="cyberpunk">Neon Wave (Xanh Neon & Hồng rực rỡ)</option>
+                                <option value="emerald">Deep Jungle (Xanh ngọc lục bảo tinh tế)</option>
+                                <option value="sunset">Sunset Glow (Vàng hoàng hôn & Tím hoàng hôn)</option>
+                            </select>
+                        </div>
+
+                        <!-- Game Name Input -->
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-400 mb-1.5">Tên Trò Chơi (Tối đa 12 chữ hoa)</label>
+                            <input type="text" id="gameTitle" value="STACKM3D" maxlength="12" oninput="updateSimulation()" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-blue-500 code-font uppercase">
+                        </div>
+
+                        <!-- Color Customization (RGB565 conversions shown in real-time) -->
+                        <div class="grid grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-400 mb-1.5">Mặt Trên Khối (Top Face)</label>
+                                <div class="flex gap-2">
+                                    <input type="color" id="colorAccent1" value="#ff9e9e" oninput="updateSimulation()" class="w-10 h-9 rounded bg-transparent border-0 cursor-pointer">
+                                    <div class="flex-1">
+                                        <div class="text-[10px] text-slate-500">RGB565 Code</div>
+                                        <div id="accent1Hex" class="text-xs font-bold code-font text-blue-400">0xFCFC</div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div>
+                                <label class="block text-xs font-semibold text-slate-400 mb-1.5">Mặt Bên Khối (Side Face)</label>
+                                <div class="flex gap-2">
+                                    <input type="color" id="colorAccent2" value="#d15b5b" oninput="updateSimulation()" class="w-10 h-9 rounded bg-transparent border-0 cursor-pointer">
+                                    <div class="flex-1">
+                                        <div class="text-[10px] text-slate-500">RGB565 Code</div>
+                                        <div id="accent2Hex" class="text-xs font-bold code-font text-fuchsia-400">0x62B2</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Stack Misalignment Simulator slider -->
+                        <div>
+                            <div class="flex justify-between items-center mb-1">
+                                <label class="block text-xs font-semibold text-slate-400">Mức Độ Lệch Khối (Stack Offset)</label>
+                                <span id="offsetVal" class="text-xs font-bold text-slate-300">4 px</span>
+                            </div>
+                            <input type="range" id="blockOffset" min="-12" max="12" value="4" oninput="updateSimulation()" class="w-full accent-blue-500 bg-slate-800 rounded-lg appearance-none h-1.5 cursor-pointer">
+                        </div>
+
+                        <!-- Interactive Menu Selection Simulator -->
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-400 mb-2">Mô Phỏng Trạng Thái Menu</label>
+                            <div class="grid grid-cols-2 gap-2">
+                                <button onclick="setMenuSelect(0)" id="btnMenu0" class="py-2 px-3 rounded-lg text-xs font-medium border text-left flex items-center justify-between transition">
+                                    <span>Option 1: PLAY NOW</span>
+                                    <i data-lucide="play" class="w-3.5 h-3.5"></i>
+                                </button>
+                                <button onclick="setMenuSelect(1)" id="btnMenu1" class="py-2 px-3 rounded-lg text-xs font-medium border text-left flex items-center justify-between transition">
+                                    <span>Option 2: SCORES</span>
+                                    <i data-lucide="trophy" class="w-3.5 h-3.5"></i>
+                                </button>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Right Side: Clean Code Explorer & API Details -->
+            <div class="lg:col-span-7 flex flex-col gap-6" id="code-section">
+                
+                <!-- IDE-like Code Panel -->
+                <div class="glass-panel rounded-2xl overflow-hidden shadow-2xl flex flex-col h-full border border-slate-800">
+                    
+                    <!-- Code Panel Header -->
+                    <div class="bg-slate-900 px-6 py-4 border-b border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                        <div class="flex items-center gap-3">
+                            <div class="flex gap-1.5">
+                                <span class="w-3 h-3 rounded-full bg-red-500/80"></span>
+                                <span class="w-3 h-3 rounded-full bg-yellow-500/80"></span>
+                                <span class="w-3 h-3 rounded-full bg-green-500/80"></span>
+                            </div>
+                            <div class="h-4 w-px bg-slate-800"></div>
+                            <div class="flex items-center gap-1.5">
+                                <i data-lucide="file-code" class="w-4 h-4 text-blue-400"></i>
+                                <span class="text-xs font-semibold text-slate-300 code-font">ili9341_stack_game.c</span>
+                            </div>
+                        </div>
+                        <button onclick="copyCCode()" class="px-3.5 py-1.5 bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold rounded-lg transition flex items-center gap-1.5 self-start sm:self-auto shadow-md">
+                            <i data-lucide="copy" class="w-3.5 h-3.5"></i> Sao chép Mã C
+                        </button>
+                    </div>
+
+                    <!-- Interactive Code Viewer (Synthesized dynamically) -->
+                    <div class="flex-1 p-6 overflow-y-auto bg-slate-950/80 max-h-[500px]">
+                        <pre class="text-xs text-slate-300 code-font leading-relaxed whitespace-pre" id="cCodeDisplay"></pre>
+                    </div>
+
+                    <!-- Brief compilation notes -->
+                    <div class="bg-slate-900/60 px-6 py-3 border-t border-slate-800/80 flex items-center justify-between text-[11px] text-slate-400">
+                        <span class="flex items-center gap-1.5">
+                            <i data-lucide="info" class="w-3.5 h-3.5 text-blue-400"></i>
+                            Thuật toán vẽ khối 3D được tối ưu hóa chỉ bằng GFX_DrawLine
+                        </span>
+                        <span class="font-semibold text-slate-300">Stack Isometric Projection</span>
+                    </div>
+                </div>
+
+            </div>
+
+        </div>
+
+        <!-- Section: Technical Explanation Map -->
+        <div class="glass-panel rounded-2xl p-6 md:p-8 mb-6">
+            <h2 class="text-xl font-bold text-slate-200 mb-4 flex items-center gap-2">
+                <i data-lucide="layers" class="text-teal-400"></i> Cách Thức Ánh Xạ Hình Chiếu Trục Đo (Isometric 3D Projection)
+            </h2>
+            <p class="text-sm text-slate-400 mb-6 leading-relaxed">
+                Trong các hệ nhúng vi điều khiển hiệu năng vừa phải, việc dựng hình 3D thực tế bằng thư viện lớn là điều không thể. Do đó, chúng ta biến đổi tọa độ thế giới 3D sang không gian màn hình 2D (TFT 320x240) sử dụng toán học chiếu trục đo và vẽ chúng thông qua các hàm nguyên thủy:
+            </p>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <!-- Isometric coordinate formulas -->
+                <div class="bg-slate-900/50 p-5 rounded-xl border border-slate-800">
+                    <div class="p-2 bg-blue-500/10 rounded-lg w-10 h-10 flex items-center justify-center mb-3">
+                        <i data-lucide="box" class="text-blue-400"></i>
+                    </div>
+                    <h3 class="font-bold text-slate-200 mb-2 text-sm">1. Quy Tắc Isometric</h3>
+                    <p class="text-xs text-slate-400 leading-relaxed mb-3">
+                        Mặt trên của khối là hình thoi có tỉ lệ trục ranh giới chiều rộng và chiều cao là 2:1.
+                    </p>
+                    <ul class="text-xs space-y-1.5 font-mono text-slate-300 bg-slate-950 p-2.5 rounded-lg">
+                        <li>• <span class="text-blue-400">W_Screen</span> = X_3D - Y_3D</li>
+                        <li>• <span class="text-blue-400">H_Screen</span> = (X_3D + Y_3D) / 2</li>
+                        <li>• <span class="text-blue-400">Thick</span> = Chiều cao khối hộp (Z)</li>
+                    </ul>
+                </div>
+
+                <!-- Wireframe and shading -->
+                <div class="bg-slate-900/50 p-5 rounded-xl border border-slate-800">
+                    <div class="p-2 bg-teal-500/10 rounded-lg w-10 h-10 flex items-center justify-center mb-3">
+                        <i data-lucide="drafting-compass" class="text-teal-400"></i>
+                    </div>
+                    <h3 class="font-bold text-slate-200 mb-2 text-sm">2. Khắc Họa Khối Bằng Đường Vẽ</h3>
+                    <p class="text-xs text-slate-400 leading-relaxed mb-3">
+                        Vẽ 3 mặt phân biệt bằng cách phân bổ các đường chéo và các mỏ neo dọc.
+                    </p>
+                    <ul class="text-xs space-y-1.5 font-mono text-slate-300 bg-slate-950 p-2.5 rounded-lg">
+                        <li>• <span class="text-teal-400">Top Rhombus</span>: Vẽ 4 đường chéo</li>
+                        <li>• <span class="text-teal-400">Left Face</span>: Hạ 2 cột thẳng bên trái</li>
+                        <li>• <span class="text-teal-400">Right Face</span>: Hạ 2 cột thẳng bên phải</li>
+                    </ul>
+                </div>
+
+                <!-- Optimization and performance -->
+                <div class="bg-slate-900/50 p-5 rounded-xl border border-slate-800">
+                    <div class="p-2 bg-indigo-500/10 rounded-lg w-10 h-10 flex items-center justify-center mb-3">
+                        <i data-lucide="zap" class="text-indigo-400"></i>
+                    </div>
+                    <h3 class="font-bold text-slate-200 mb-2 text-sm">3. Tối Ưu Tốc Độ Vi Điều Khiển</h3>
+                    <p class="text-xs text-slate-400 leading-relaxed mb-3">
+                        Giảm thiểu các phép tính nhân/chia số thực. Chỉ dùng số nguyên `int16_t` trong thuật toán vẽ.
+                    </p>
+                    <ul class="text-xs space-y-1.5 font-mono text-slate-300 bg-slate-950 p-2.5 rounded-lg">
+                        <li>• <span class="text-indigo-400">Không dùng float</span> cho tính tọa độ khối</li>
+                        <li>• <span class="text-indigo-400">Vẽ đè từ dưới lên</span> (Painter's Algorithm)</li>
+                        <li>• <span class="text-indigo-400">Chỉ truyền tọa độ</span> dạng Point_t</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Custom Notification Toast -->
+        <div id="toast" class="fixed bottom-6 right-6 px-4 py-3 bg-slate-900 text-slate-100 rounded-xl shadow-2xl border border-slate-800 transform translate-y-20 opacity-0 transition-all duration-300 flex items-center gap-3 z-50">
+            <div class="p-1 bg-emerald-500/20 text-emerald-400 rounded-lg">
+                <i data-lucide="check" class="w-4 h-4"></i>
+            </div>
+            <span class="text-sm font-medium">Đã sao chép mã nguồn C vào bộ nhớ tạm!</span>
+        </div>
+
+    </div>
+
+    <script>
+        let iliSim;
+        let gfxSim;
+        let selectedMenuIndex = 0;
+
+        // ILI9341 Screen Emulator Class
+        class ILI9341_Emulator {
+            constructor(canvasId) {
+                this.canvas = document.getElementById(canvasId);
+                this.ctx = this.canvas.getContext('2d');
+                this.width = 320;
+                this.height = 240;
+            }
+
+            // Convert standard RGB565 code to RGB string for Canvas
+            rgb565ToCss(colorVal) {
+                const r = ((colorVal >> 11) & 0x1F) << 3;
+                const g = ((colorVal >> 5) & 0x3F) << 2;
+                const b = (colorVal & 0x1F) << 3;
+                return `rgb(${r}, ${g}, ${b})`;
+            }
+
+            fillScreen(color) {
+                this.ctx.fillStyle = this.rgb565ToCss(color);
+                this.ctx.fillRect(0, 0, this.width, this.height);
+            }
+
+            drawPixel(x, y, color) {
+                if (x >= 0 && x < this.width && y >= 0 && y < this.height) {
+                    this.ctx.fillStyle = this.rgb565ToCss(color);
+                    this.ctx.fillRect(x, y, 1, 1);
+                }
+            }
+
+            drawRectangle(x, y, w, h, color) {
+                this.ctx.strokeStyle = this.rgb565ToCss(color);
+                this.ctx.lineWidth = 1;
+                this.ctx.strokeRect(x + 0.5, y + 0.5, w - 1, h - 1);
+            }
+
+            drawHLine(x, y, w, color) {
+                this.ctx.strokeStyle = this.rgb565ToCss(color);
+                this.ctx.lineWidth = 1;
+                this.ctx.beginPath();
+                this.ctx.moveTo(x, y + 0.5);
+                this.ctx.lineTo(x + w, y + 0.5);
+                this.ctx.stroke();
+            }
+
+            drawVLine(x, y, h, color) {
+                this.ctx.strokeStyle = this.rgb565ToCss(color);
+                this.ctx.lineWidth = 1;
+                this.ctx.beginPath();
+                this.ctx.moveTo(x + 0.5, y);
+                this.ctx.lineTo(x + 0.5, y + h);
+                this.ctx.stroke();
+            }
+        }
+
+        // GFX Layer Implementation mimicking MCU calls
+        class GFX_Emulator {
+            constructor(iliInstance) {
+                this.ili = iliInstance;
+            }
+
+            drawLine(p1, p2, color) {
+                const ctx = this.ili.ctx;
+                ctx.strokeStyle = this.ili.rgb565ToCss(color);
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                ctx.moveTo(p1.x + 0.5, p1.y + 0.5);
+                ctx.lineTo(p2.x + 0.5, p2.y + 0.5);
+                ctx.stroke();
+            }
+
+            drawRectangle(p1, p2, color) {
+                const x = Math.min(p1.x, p2.x);
+                const y = Math.min(p1.y, p2.y);
+                const w = Math.abs(p2.x - p1.x);
+                const h = Math.abs(p2.y - p1.y);
+                this.ili.drawRectangle(x, y, w, h, color);
+            }
+
+            drawCircle(center, radius, color) {
+                const ctx = this.ili.ctx;
+                ctx.strokeStyle = this.ili.rgb565ToCss(color);
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                ctx.arc(center.x, center.y, radius, 0, 2 * Math.PI);
+                ctx.stroke();
+            }
+
+            drawFunction(func, color) {
+                const ctx = this.ili.ctx;
+                ctx.strokeStyle = this.ili.rgb565ToCss(color);
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                let started = false;
+                for (let x = 0; x < this.ili.width; x++) {
+                    const y = func(x);
+                    if (y >= 0 && y < this.ili.height) {
+                        if (!started) {
+                            ctx.moveTo(x, y + 0.5);
+                            started = true;
+                        } else {
+                            ctx.lineTo(x, y + 0.5);
+                        }
+                    }
+                }
+                ctx.stroke();
+            }
+
+            fillBetweenFunctions(funcTop, funcBottom, color) {
+                const ctx = this.ili.ctx;
+                ctx.fillStyle = this.ili.rgb565ToCss(color);
+                for (let x = 0; x < this.ili.width; x++) {
+                    const y1 = Math.max(0, Math.min(this.ili.height - 1, funcTop(x)));
+                    const y2 = Math.max(0, Math.min(this.ili.height - 1, funcBottom(x)));
+                    const startY = Math.min(y1, y2);
+                    const height = Math.abs(y2 - y1);
+                    ctx.fillRect(x, startY, 1, height);
+                }
+            }
+
+            // Custom Isometric Wireframe block drawing routine inside emulator
+            drawWireframeBlock(cx, cy, w, h, thick, color) {
+                const p_top = { x: cx, y: cy };
+                const p_left = { x: cx - w, y: cy + h };
+                const p_right = { x: cx + w, y: cy + h };
+                const p_mid = { x: cx, y: cy + 2 * h };
+
+                const p_left_bot = { x: cx - w, y: cy + h + thick };
+                const p_right_bot = { x: cx + w, y: cy + h + thick };
+                const p_mid_bot = { x: cx, y: cy + 2 * h + thick };
+
+                // Top face
+                this.drawLine(p_top, p_left, color);
+                this.drawLine(p_top, p_right, color);
+                this.drawLine(p_left, p_mid, color);
+                this.drawLine(p_right, p_mid, color);
+
+                // Vertical edges
+                this.drawLine(p_left, p_left_bot, color);
+                this.drawLine(p_right, p_right_bot, color);
+                this.drawLine(p_mid, p_mid_bot, color);
+
+                // Bottom edges
+                this.drawLine(p_left_bot, p_mid_bot, color);
+                this.drawLine(p_mid_bot, p_right_bot, color);
+            }
+        }
+
+        // Render raster text resembling STM32 fonts.h
+        function drawCanvasText(str, x, y, fontType, color) {
+            const ctx = iliSim.ctx;
+            ctx.fillStyle = iliSim.rgb565ToCss(color);
+            if (fontType === 'FONT4') {
+                ctx.font = "bold 15px monospace";
+            } else if (fontType === 'FONT3') {
+                ctx.font = "bold 12px monospace";
+            } else if (fontType === 'FONT2') {
+                ctx.font = "bold 10px monospace";
+            } else {
+                ctx.font = "9px monospace";
+            }
+            ctx.textBaseline = "top";
+            ctx.fillText(str, x, y);
+        }
+
+        // Presets Specific to StackM3D Theme (Warm, Isometric Minimalist Pastel & Neon themes)
+        const Presets = {
+            pastel: {
+                title: "STACKM3D",
+                accent1: "#ff9e9e",
+                accent2: "#d15b5b",
+                bg: "#0b0c10",
+                grid: "#1f2235"
+            },
+            cyberpunk: {
+                title: "STACKM3D",
+                accent1: "#00ffff",
+                accent2: "#ff007f",
+                bg: "#050508",
+                grid: "#2a153d"
+            },
+            emerald: {
+                title: "STACKM3D",
+                accent1: "#a3f7bf",
+                accent2: "#1f8a70",
+                bg: "#040c0e",
+                grid: "#11382b"
+            },
+            sunset: {
+                title: "STACKM3D",
+                accent1: "#ffd07f",
+                accent2: "#a044ff",
+                bg: "#0f0518",
+                grid: "#3d1152"
+            }
+        };
+
+        function applyPreset(presetKey) {
+            if (Presets[presetKey]) {
+                const config = Presets[presetKey];
+                document.getElementById('gameTitle').value = config.title;
+                document.getElementById('colorAccent1').value = config.accent1;
+                document.getElementById('colorAccent2').value = config.accent2;
+                updateSimulation();
+            }
+        }
+
+        function setMenuSelect(index) {
+            selectedMenuIndex = index;
+            updateSimulation();
+        }
+
+        function resetDefaults() {
+            document.getElementById('themePreset').value = 'pastel';
+            applyPreset('pastel');
+            document.getElementById('blockOffset').value = 4;
+            updateSimulation();
+        }
+
+        // --- STREAMING_CHUNK: Updating the simulator loop and generating code ---
+        function updateSimulation() {
+            const titleInput = document.getElementById('gameTitle').value.toUpperCase() || "STACK 3D";
+            const blockOffset = parseInt(document.getElementById('blockOffset').value);
+            document.getElementById('offsetVal').innerText = `${blockOffset} px`;
+
+            // Calculate exact RGB565 structures
+            const accent1 = convertHexToRGB565(document.getElementById('colorAccent1').value);
+            const accent2 = convertHexToRGB565(document.getElementById('colorAccent2').value);
+
+            const presetKey = document.getElementById('themePreset').value;
+            const bgHex = Presets[presetKey] ? Presets[presetKey].bg : "#000000";
+            const gridHex = Presets[presetKey] ? "#780f78" : "#780f78"; // Force purple-magenta neon look for synthwave
+
+            const colorBg = convertHexToRGB565(bgHex);
+            const colorGrid = convertHexToRGB565(gridHex);
+            const colorWhite = convertHexToRGB565("#ffffff");
+            const colorLightGrey = convertHexToRGB565("#c618c6"); // standard light grey
+            const colorDarkGrey = convertHexToRGB565("#7bef7b"); // standard dark grey
+            const colorRed = convertHexToRGB565("#f80000");
+            const colorOrange = convertHexToRGB565("#fd2000");
+            const colorYellow = convertHexToRGB565("#ffe000");
+            const colorCyan = convertHexToRGB565("#07ff00");
+            const colorPink = convertHexToRGB565("#f81f00");
+
+            // Update interactive hex tags
+            document.getElementById('accent1Hex').innerText = accent1.hexStr;
+            document.getElementById('accent2Hex').innerText = accent2.hexStr;
+
+            // Highlight dynamic simulator controls
+            if (selectedMenuIndex === 0) {
+                document.getElementById('btnMenu0').className = "py-2 px-3 rounded-lg text-xs font-semibold border-2 border-blue-500 bg-blue-500/10 text-blue-300 text-left flex items-center justify-between transition";
+                document.getElementById('btnMenu1').className = "py-2 px-3 rounded-lg text-xs font-medium border border-slate-700 bg-slate-900/60 text-slate-400 text-left flex items-center justify-between transition hover:border-slate-600";
+            } else {
+                document.getElementById('btnMenu0').className = "py-2 px-3 rounded-lg text-xs font-medium border border-slate-700 bg-slate-900/60 text-slate-400 text-left flex items-center justify-between transition hover:border-slate-600";
+                document.getElementById('btnMenu1').className = "py-2 px-3 rounded-lg text-xs font-semibold border-2 border-blue-500 bg-blue-500/10 text-blue-300 text-left flex items-center justify-between transition";
+            }
+
+            // --- REDRAW TFT SIMULATOR CANVAS ---
+            iliSim.fillScreen(colorBg.val);
+
+            // 1. Draw background stars
+            const stars = [
+                {x: 30, y: 25}, {x: 75, y: 80}, {x: 140, y: 15}, {x: 180, y: 20}, {x: 280, y: 40}, {x: 100, y: 110}
+            ];
+            stars.forEach((star, idx) => {
+                iliSim.drawPixel(star.x, star.y, (idx % 2 === 0) ? colorWhite.val : colorLightGrey.val);
+            });
+
+            // 2. Draw Concentric Neon Sun
+            gfxSim.drawCircle({x: 160, y: 130}, 45, colorRed.val);
+            gfxSim.drawCircle({x: 160, y: 130}, 40, colorOrange.val);
+            gfxSim.drawCircle({x: 160, y: 130}, 35, colorYellow.val);
+
+            // 3. Draw Synthwave Perspective Ground Grid
+            iliSim.drawHLine(0, 170, 320, colorGrid.val);
+            for (let x = -80; x <= 400; x += 60) {
+                gfxSim.drawLine({x: 160, y: 170}, {x: x, y: 240}, colorGrid.val);
+            }
+            // Horizontal grid lines
+            const hLines = [172, 176, 183, 194, 210, 230];
+            hLines.forEach(y => {
+                iliSim.drawHLine(0, y, 320, colorGrid.val);
+            });
+
+            // 4. Draw 3D Isometric Wireframe Tower
+            gfxSim.drawWireframeBlock(230, 160, 32, 10, 10, colorDarkGrey.val); // Base
+            gfxSim.drawWireframeBlock(230, 135, 24, 8, 12, colorCyan.val); // Block 1
+            gfxSim.drawWireframeBlock(230 + blockOffset, 110, 24, 8, 12, colorPink.val); // Block 2
+            gfxSim.drawWireframeBlock(226, 85, 24, 8, 12, colorYellow.val); // Block 3
+
+            // 5. Draw left UI text
+            drawCanvasText(titleInput, 25, 30, 'FONT4', colorCyan.val);
+            drawCanvasText("WIRE-FRAME ED.", 25, 52, 'FONT1', colorYellow.val);
+            iliSim.drawHLine(25, 68, 135, colorPink.val);
+
+            // Menu outline box
+            iliSim.drawRectangle(20, 90, 140, 85, colorDarkGrey.val);
+            iliSim.drawHLine(20, 90, 140, colorCyan.val);
+
+            // Menu choices
+            if (selectedMenuIndex === 0) {
+                drawCanvasText(">", 28, 105, 'FONT2', colorYellow.val);
+                drawCanvasText("PLAY GAME", 42, 105, 'FONT2', colorWhite.val);
+                drawCanvasText("HIGH SCORES", 42, 135, 'FONT2', colorDarkGrey.val);
+            } else {
+                drawCanvasText("PLAY GAME", 42, 105, 'FONT2', colorDarkGrey.val);
+                drawCanvasText(">", 28, 135, 'FONT2', colorYellow.val);
+                drawCanvasText("HIGH SCORES", 42, 135, 'FONT2', colorWhite.val);
+            }
+
+            // Action prompt
+            drawCanvasText("PRESS USER BUTTON", 20, 195, 'FONT2', colorYellow.val);
+            drawCanvasText("TO START THE GAME", 20, 212, 'FONT1', colorWhite.val);
+
+            // --- REGENERATE DYNAMIC COMPLIANT C CODE ---
+            const generatedCCode = `/**
+ * @file ili9341_stack_game.c
+ * @brief Chuong trinh ve man hinh khoi dong Game StackM3D Retro Synthwave.
+ * @note Duoc tao dong tu StackM3D Title Designer & Simulator.
+ */
+
+#include "graphics_2d.h"
+#include "fonts.h"
+#include <math.h>
+
+/* --- RGB565 Palette Colors --- */
+#define COLOR_BACKGROUND  ${colorBg.hexStr}  // ${bgHex}
+#define COLOR_ACCENT_1    ${colorCyan.hexStr}  // Cyan
+#define COLOR_ACCENT_2    ${colorPink.hexStr}  // Pink
+#define COLOR_GRID        ${colorGrid.hexStr}  // Magenta/Purple neon grid
+#define COLOR_WHITE       0xFFFF
+#define COLOR_LIGHTGREY   0xC618
+#define COLOR_DARKGREY    0x7BEF
+#define COLOR_RED         0xF800
+#define COLOR_ORANGE      0xFD20
+#define COLOR_YELLOW      0xFFE0
+
+/* --- Thiet Lap Tọa Do Chenh Lech Khoi --- */
+#define STACK_OFFSET_X    ${blockOffset}
+
+/**
+ * @brief Ham ve khoi Hop Isometric 3D bang cong cu nguyen thuy GFX_DrawLine
+ */
+static void DrawWireframeBlock(int16_t cx, int16_t cy, int16_t w, int16_t h, int16_t thick, uint16_t color) {
+    Point_t p_top       = { cx, cy };
+    Point_t p_left      = { cx - w, cy + h };
+    Point_t p_right     = { cx + w, cy + h };
+    Point_t p_mid       = { cx, cy + 2 * h };
+
+    Point_t p_left_bot  = { cx - w, cy + h + thick };
+    Point_t p_right_bot = { cx + w, cy + h + thick };
+    Point_t p_mid_bot   = { cx, cy + 2 * h + thick };
+
+    // 1. Ve mat tren (Rhombus top face)
+    GFX_DrawLine(p_top, p_left, color);
+    GFX_DrawLine(p_top, p_right, color);
+    GFX_DrawLine(p_left, p_mid, color);
+    GFX_DrawLine(p_right, p_mid, color);
+
+    // 2. Ve các canh doc (Vertical edges)
+    GFX_DrawLine(p_left, p_left_bot, color);
+    GFX_DrawLine(p_right, p_right_bot, color);
+    GFX_DrawLine(p_mid, p_mid_bot, color);
+
+    // 3. Ve cac canh day (Bottom edges)
+    GFX_DrawLine(p_left_bot, p_mid_bot, color);
+    GFX_DrawLine(p_mid_bot, p_right_bot, color);
+}
+
+/**
+ * @brief Ham ve man hinh khoi dong.
+ */
+static void DrawTitleScreen(void)
+{
+    // 1. Khoi tao thiet bi quay ngang va xoa man hinh
+    ILI9341_FillScreen(COLOR_BACKGROUND);
+
+    // 2. Ve cac ngoi sao trang tri
+    ILI9341_DrawPixel(30, 25, COLOR_WHITE);
+    ILI9341_DrawPixel(75, 80, COLOR_LIGHTGREY);
+    ILI9341_DrawPixel(140, 15, COLOR_WHITE);
+    ILI9341_DrawPixel(180, 20, COLOR_WHITE);
+    ILI9341_DrawPixel(280, 40, COLOR_LIGHTGREY);
+    ILI9341_DrawPixel(100, 110, COLOR_LIGHTGREY);
+
+    // 3. Ve Concentric Neon Sun
+    GFX_DrawCircle((Point_t){160, 130}, 45, COLOR_RED);
+    GFX_DrawCircle((Point_t){160, 130}, 40, COLOR_ORANGE);
+    GFX_DrawCircle((Point_t){160, 130}, 35, COLOR_YELLOW);
+
+    // 4. Ve duong chan troi va luoi perspective
+    ILI9341_DrawHLine(0, 170, 320, COLOR_GRID);
+    for (int16_t x = -80; x <= 400; x += 60) {
+        GFX_DrawLine((Point_t){160, 170}, (Point_t){x, 240}, COLOR_GRID);
+    }
+    ILI9341_DrawHLine(0, 172, 320, COLOR_GRID);
+    ILI9341_DrawHLine(0, 176, 320, COLOR_GRID);
+    ILI9341_DrawHLine(0, 183, 320, COLOR_GRID);
+    ILI9341_DrawHLine(0, 194, 320, COLOR_GRID);
+    ILI9341_DrawHLine(0, 210, 320, COLOR_GRID);
+    ILI9341_DrawHLine(0, 230, 320, COLOR_GRID);
+
+    // 5. Ve thap 3D Isometric Wireframe
+    DrawWireframeBlock(230, 160, 32, 10, 10, COLOR_DARKGREY);
+    DrawWireframeBlock(230, 135, 24, 8, 12, COLOR_ACCENT_1);
+    DrawWireframeBlock(230 + STACK_OFFSET_X, 110, 24, 8, 12, COLOR_ACCENT_2);
+    DrawWireframeBlock(226, 85, 24, 8, 12, COLOR_YELLOW);
+
+    // 6. Ve chu de STackM3D va cac text huong dan
+    ILI9341_DrawText("${titleInput}", FONT4, 25, 30, COLOR_ACCENT_1, COLOR_BACKGROUND);
+    ILI9341_DrawText("WIRE-FRAME ED.", FONT1, 25, 52, COLOR_YELLOW, COLOR_BACKGROUND);
+    ILI9341_DrawHLine(25, 68, 135, COLOR_ACCENT_2);
+
+    // Hop Menu
+    ILI9341_DrawRectangle(20, 90, 140, 85, COLOR_DARKGREY);
+    ILI9341_DrawHLine(20, 90, 140, COLOR_ACCENT_1);
+
+    // Lua chon Menu
+    ILI9341_DrawText(">", FONT2, 28, 105, COLOR_YELLOW, COLOR_BACKGROUND);
+    ILI9341_DrawText("PLAY GAME", FONT2, 42, 105, COLOR_WHITE, COLOR_BACKGROUND);
+    ILI9341_DrawText("HIGH SCORES", FONT2, 42, 135, COLOR_DARKGREY, COLOR_BACKGROUND);
+
+    // Flashing start instruction
+    ILI9341_DrawText("PRESS USER BUTTON", FONT2, 20, 195, COLOR_YELLOW, COLOR_BACKGROUND);
+    ILI9341_DrawText("TO START THE GAME", FONT1, 20, 212, COLOR_WHITE, COLOR_BACKGROUND);
+}`;
+
+            document.getElementById('cCodeDisplay').textContent = generatedCCode;
+        }
+
+        // Action helper for color transformations
+        function convertHexToRGB565(hexString) {
+            const hex = hexString.replace(/^\s*#|\s*$/g, '');
+            const r = parseInt(hex.substr(0, 2), 16);
+            const g = parseInt(hex.substr(2, 2), 16);
+            const b = parseInt(hex.substr(4, 2), 16);
+
+            const r5 = (r >> 3) & 0x1F;
+            const g6 = (g >> 2) & 0x3F;
+            const b5 = (b >> 3) & 0x1F;
+
+            const finalRGB565 = (r5 << 11) | (g6 << 5) | b5;
+            return {
+                val: finalRGB565,
+                hexStr: "0x" + finalRGB565.toString(16).toUpperCase().padStart(4, '0')
+            };
+        }
+
+        // Action: Copy C Code to Clipboard using standard compatibility method
+        function copyCCode() {
+            const codeText = document.getElementById('cCodeDisplay').textContent;
+            const textarea = document.createElement('textarea');
+            textarea.value = codeText;
+            textarea.style.position = 'fixed';
+            textarea.style.opacity = '0';
+            document.body.appendChild(textarea);
+            textarea.select();
+            
+            try {
+                document.execCommand('copy');
+                const toast = document.getElementById('toast');
+                toast.classList.remove('translate-y-20', 'opacity-0');
+                toast.classList.add('translate-y-0', 'opacity-100');
+                setTimeout(() => {
+                    toast.classList.remove('translate-y-0', 'opacity-100');
+                    toast.classList.add('translate-y-20', 'opacity-0');
+                }, 3000);
+            } catch (err) {
+                console.error('Không sao chép được mã C: ', err);
+            } finally {
+                document.body.removeChild(textarea);
+            }
+        }
+
+        // Page Loader setup
+        window.onload = function() {
+            iliSim = new ILI9341_Emulator("iliCanvas");
+            gfxSim = new GFX_Emulator(iliSim);
+            lucide.createIcons();
+            updateSimulation();
+        }
+    </script>
+
+</body>
+</html>
