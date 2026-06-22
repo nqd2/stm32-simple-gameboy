@@ -100,7 +100,7 @@ static void Render_MainMenu(void)
         GFX3D_DrawChunkText(chunk_color_buffer, y_start, CHUNK_HEIGHT, "TETRIS", FONT2, 208, 120, COLOR_WHITE, COLOR_BACKGROUND);
         GFX3D_DrawChunkText(chunk_color_buffer, y_start, CHUNK_HEIGHT, "Classic 2D", FONT1, 203, 140, COLOR_DARKGREY, COLOR_BACKGROUND);
 
-        GFX3D_DrawChunkText(chunk_color_buffer, y_start, CHUNK_HEIGHT, "Move cursor with Bluetooth serial (u/d/l/r)", FONT1, 35, 195, COLOR_DARKGREY, COLOR_BACKGROUND);
+        GFX3D_DrawChunkText(chunk_color_buffer, y_start, CHUNK_HEIGHT, "Move cursor with Bluetooth serial (w/s/a/d)", FONT1, 35, 195, COLOR_DARKGREY, COLOR_BACKGROUND);
         GFX3D_DrawChunkText(chunk_color_buffer, y_start, CHUNK_HEIGHT, "Press OK (1) to select", FONT1, 95, 210, COLOR_WHITE, COLOR_BACKGROUND);
 
         if (show_cursor) {

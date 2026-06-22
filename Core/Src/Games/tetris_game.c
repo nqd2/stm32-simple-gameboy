@@ -405,10 +405,10 @@ void TetrisGame_Render(TetrisGame_t *game, int16_t cursor_x, int16_t cursor_y, u
 
         // Draw Controls Help at bottom right
         GFX3D_DrawChunkText(chunk_color_buffer, y_start, CHUNK_HEIGHT, "CONTROLS", FONT1, 230, 120, COLOR_DARKGREY, COLOR_BACKGROUND);
-        GFX3D_DrawChunkText(chunk_color_buffer, y_start, CHUNK_HEIGHT, "L: Left", FONT1, 230, 134, COLOR_WHITE, COLOR_BACKGROUND);
-        GFX3D_DrawChunkText(chunk_color_buffer, y_start, CHUNK_HEIGHT, "R: Right", FONT1, 230, 146, COLOR_WHITE, COLOR_BACKGROUND);
-        GFX3D_DrawChunkText(chunk_color_buffer, y_start, CHUNK_HEIGHT, "U: Rotate", FONT1, 230, 158, COLOR_WHITE, COLOR_BACKGROUND);
-        GFX3D_DrawChunkText(chunk_color_buffer, y_start, CHUNK_HEIGHT, "D: Soft D", FONT1, 230, 170, COLOR_WHITE, COLOR_BACKGROUND);
+        GFX3D_DrawChunkText(chunk_color_buffer, y_start, CHUNK_HEIGHT, "A: Left", FONT1, 230, 134, COLOR_WHITE, COLOR_BACKGROUND);
+        GFX3D_DrawChunkText(chunk_color_buffer, y_start, CHUNK_HEIGHT, "D: Right", FONT1, 230, 146, COLOR_WHITE, COLOR_BACKGROUND);
+        GFX3D_DrawChunkText(chunk_color_buffer, y_start, CHUNK_HEIGHT, "W: Rotate", FONT1, 230, 158, COLOR_WHITE, COLOR_BACKGROUND);
+        GFX3D_DrawChunkText(chunk_color_buffer, y_start, CHUNK_HEIGHT, "S: Soft D", FONT1, 230, 170, COLOR_WHITE, COLOR_BACKGROUND);
         GFX3D_DrawChunkText(chunk_color_buffer, y_start, CHUNK_HEIGHT, "1: Hard D", FONT1, 230, 182, COLOR_WHITE, COLOR_BACKGROUND);
 
         // Game Over Overlay
