@@ -6,6 +6,9 @@
   */
 
 #include "Graphics/graphics_3d.h"
+#include "Communication/espuart.h"
+
+extern volatile uint8_t spi_keep_cs_low;
 
 #define NUM_CHUNKS (GFX_HEIGHT / CHUNK_HEIGHT)
 #define FACE_EDGE_01 0x01u
@@ -63,20 +66,32 @@ void ILI9341_SendPixelBuffer(uint16_t x, uint16_t y, uint16_t w, uint16_t h, uin
     uint32_t total_bytes = (uint32_t)w * h * 2;
     uint8_t *ptr = (uint8_t *)buffer;
 
+    spi_keep_cs_low = 1;
+
     while (total_bytes > 0)
     {
         uint16_t chunk_size = (total_bytes > 60000) ? 60000 : (uint16_t)total_bytes;
 
-        // Wait for SPI to be ready (blocking wait to avoid collisions with DMA)
-        while (HAL_SPI_GetState(HSPI_INSTANCE) != HAL_SPI_STATE_READY);
+        // Wait for SPI DMA to be ready (poll UART to process keys)
+        while (HAL_SPI_GetState(HSPI_INSTANCE) != HAL_SPI_STATE_READY)
+        {
+            espuart_poll();
+        }
 
-        HAL_SPI_Transmit(HSPI_INSTANCE, ptr, chunk_size, 100);
+        HAL_SPI_Transmit_DMA(HSPI_INSTANCE, ptr, chunk_size);
 
         ptr += chunk_size;
         total_bytes -= chunk_size;
     }
 
+    // Wait for the final DMA block to finish
+    while (HAL_SPI_GetState(HSPI_INSTANCE) != HAL_SPI_STATE_READY)
+    {
+        espuart_poll();
+    }
+
     HAL_GPIO_WritePin(LCD_CS_PORT, LCD_CS_PIN, GPIO_PIN_SET);
+    spi_keep_cs_low = 0;
 }
 
 static uint16_t ScaleColorRGB565(uint16_t color, float intensity)

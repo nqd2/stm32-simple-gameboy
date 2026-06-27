@@ -86,12 +86,17 @@
 volatile uint16_t LCD_HEIGHT = ILI9341_SCREEN_HEIGHT;
 volatile uint16_t LCD_WIDTH	 = ILI9341_SCREEN_WIDTH;
 
+volatile uint8_t spi_keep_cs_low = 0;
+
 void HAL_SPI_TxCpltCallback(SPI_HandleTypeDef *hspi)
 {
   /* Deselect when Tx Complete */
   if(hspi == HSPI_INSTANCE)
   {
-	  HAL_GPIO_WritePin(LCD_CS_PORT, LCD_CS_PIN, GPIO_PIN_SET);
+    if (!spi_keep_cs_low)
+    {
+      HAL_GPIO_WritePin(LCD_CS_PORT, LCD_CS_PIN, GPIO_PIN_SET);
+    }
   }
 }
 
