@@ -1,0 +1,94 @@
+\chapter{Cơ sở kỹ thuật và kiến trúc hệ thống}
+\label{chap:architecture}
+
+\section{Nền tảng phần cứng}
+
+Vi điều khiển trung tâm là STM32F429ZIT6. Dòng STM32F429 cung cấp lõi Cortex-M4 với FPU, nhiều ngoại vi truyền thông và USB OTG; chi tiết thanh ghi, kiến trúc bus và ngoại vi được mô tả trong RM0090~\cite{stm32datasheet,rm0090}. Project cấu hình HSE 8 MHz và PLL để chạy lõi ở 168 MHz. Mức này thấp hơn giới hạn tối đa của linh kiện nhưng cần vì bắt buộc cấu hình xung cấp cho USB OTG ở 48MHz.
+
+Màn hình ILI9341 được điều khiển bằng SPI5 ở chế độ master. Dữ liệu điểm ảnh dùng RGB565, nghĩa là mỗi điểm ảnh chiếm 16 bit.
+
+\begin{table}[H]
+\centering
+\small
+\caption{Cấu hình ngoại vi chính}
+\label{tab:hardware}
+\begin{tabularx}{\textwidth}{@{}L{0.20\textwidth}L{0.27\textwidth}Y@{}}
+\toprule
+\textbf{Khối} & \textbf{Cấu hình} & \textbf{Vai trò} \\
+\midrule
+STM32F429ZIT6 & HSE 8 MHz, SYSCLK 168 MHz & Chạy vòng lặp, luật game và dựng hình \\
+ILI9341 & $320\times240$, RGB565; SPI5 42 Mbit/s; PF7/PF9 & Hiển thị menu, Stack 3D và Tetris \\
+USART2 RX & 921600 baud; PA3; DMA1 Stream 5 vòng & Nhận dữ liệu điều khiển từ ESP32 vào STM32 \\
+Nút người dùng & PA0, EXTI cạnh lên, debounce 50 ms & Phát hành động chọn \\
+USB OTG FS & PC4 điều khiển nguồn VBUS & Cấp nguồn cho ESP32; không tham gia truyền dữ liệu game \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+Các chân điều khiển LCD được khai báo trong driver: CS tại PC2, D/C tại PD13 và Reset tại PD12. ESP32 dùng UART2 TX trên chân GPIO17 để nối tới PA3 (USART2 RX) của STM32; GPIO16 được cấu hình RX trên ESP32 nhưng luồng điều khiển của phiên bản hiện tại chỉ đi một chiều. Hai board phải nối chung mass. SPI5 TX sử dụng DMA2 Stream 4 khi gửi các khối điểm ảnh tới LCD.
+
+\section{Đường điều khiển không dây}
+
+Máy tính chạy \texttt{Others/bluetooth.py} để đọc phím tức thời và gửi byte qua socket RFCOMM\@. Script tự tìm thiết bị \texttt{ESP32\_Bridge\_Logger} trong Windows Registry, sau đó kết nối Serial Port Profile trên kênh 1. ESP32 dùng \texttt{BluetoothSerial} để nhận các byte Bluetooth Classic và chuyển nguyên trạng sang STM32 qua UART2 ở 921600 baud. UART2 là đường dữ liệu một chiều từ ESP32 đến STM32 trong hệ thống hiện tại.
+
+Trên STM32, module \texttt{espuart} khởi động DMA nhận vòng 256 byte. Hàm polling so sánh chỉ số đọc với vị trí ghi hiện tại của DMA, lấy từng byte và gọi callback. Callback chuyển ký tự sang \texttt{InputAction\_t}; nhờ đó, game không phụ thuộc vào nguồn nhập cụ thể. Đường truyền hiện tại là Bluetooth SPP - ESP32 - UART2, không phải I2C.
+
+\section{Kiến trúc tổng thể}
+
+Hình~\ref{fig:system-architecture} mô tả luồng dữ liệu và nguồn của nguyên mẫu. Cổng USB OTG chỉ được dùng để cấp nguồn cho ESP32, không phải một đường nhập liệu. Dữ liệu điều khiển đi từ PC qua Bluetooth SPP đến ESP32, sau đó được ESP32 chuyển sang STM32 qua UART2 RX và DMA vòng.
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}[node distance=7mm and 8mm]
+  \node[block] (pc) {PC\\Python controller};
+  \node[block, right=of pc] (bt) {Bluetooth SPP\\ESP32};
+  \node[block, right=of bt] (uart) {UART2 RX\\DMA vòng};
+  \node[block, right=of uart] (input) {InputManager\\hành động logic};
+  \node[block, below=10mm of input] (state) {AppState\\Manager\\menu và game};
+  \node[block, left=of state] (games) {Stack 3D\\Tetris};
+  \node[block, left=of games] (gfx) {Graphics 2D/3D\\chunk + Z-buffer};
+  \node[block, left=of gfx] (lcd) {SPI5\\ILI9341};
+  \node[compactblock, above=8mm of bt] (usb) {USB OTG\\cấp nguồn ESP32};
+  \node[compactblock, above=8mm of input] (button) {Nút PA0\\EXTI};
+
+  \draw[flow] (pc) -- (bt);
+  \draw[flow] (bt) -- (uart);
+  \draw[flow] (uart) -- (input);
+  \draw[flow] (input) -- (state);
+  \draw[flow] (state) -- (games);
+  \draw[flow] (games) -- (gfx);
+  \draw[flow] (gfx) -- (lcd);
+  \draw[flow] (button) -- (input);
+  \draw[flow] (usb) -- node[right, font=\scriptsize] {nguồn} (bt);
+\end{tikzpicture}
+\caption{Kiến trúc dữ liệu và điều khiển của hệ thống}
+\label{fig:system-architecture}
+\end{figure}
+
+\section{Tổ chức phần mềm}
+
+Phần ứng dụng được chia theo trách nhiệm như Bảng~\ref{tab:modules}.
+
+\begin{table}[H]
+\centering
+\caption{Các mô-đun phần mềm chính}
+\label{tab:modules}
+\small
+\begin{tabularx}{\textwidth}{@{}p{0.24\textwidth}Y Y@{}}
+\toprule
+\textbf{Mô-đun} & \textbf{Trách nhiệm} & \textbf{Giao diện chính} \\
+\midrule
+\texttt{main.c} & Khởi tạo ngoại vi, lấy $\Delta t$, đọc sự kiện nút và gọi vòng lặp ứng dụng & \texttt{main}, callback EXTI/UART \\
+\texttt{input\_manager} & Chuẩn hóa ký tự thành hành động logic & \texttt{InputManager\_MapCharacter} \\
+\texttt{app\_state\_manager} & Quản lý menu, game hiện tại, con trỏ và màn hình game over & Init, Update, Render, HandleAction \\
+\texttt{stack\_game} & Luật Stack, vật lý mảnh rơi, camera và đối tượng render & Init, Update, HandlePress, Render \\
+\texttt{tetris\_game} & Lưới, tetromino, va chạm, xóa dòng, điểm và giao diện & Init, Update, HandleAction, Render \\
+\texttt{graphics\_3d} & Toán vector/ma trận, rasterizer, Z-buffer, chunk và overlay & \texttt{GFX3D\_RenderObjects} \\
+Driver ILI9341 & Gửi lệnh, màu và khối điểm ảnh tới LCD & Init, SetAddress, SendPixelBuffer \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\section{Luồng thực thi}
+
+Sau khi HAL và ngoại vi được khởi tạo, chương trình cấu hình nguồn cho ESP32, màn hình, UART2 RX DMA và state manager. Mỗi vòng lặp polling UART2, lấy các lần nhấn PA0 trong vùng bảo vệ ngắt, tính $\Delta t$, cập nhật state rồi render toàn màn hình. Kiến trúc không dùng RTOS; mọi phần việc chạy tuần tự trong vòng lặp chính, còn DMA và ngắt chỉ đảm nhiệm tiếp nhận dữ liệu hoặc ghi nhận sự kiện ngắn.

@@ -1,0 +1,45 @@
+% !TeX program = xelatex
+\documentclass[12pt]{extreport}
+\input{setting}
+
+\newcommand{\UniversityName}{ĐẠI HỌC BÁCH KHOA HÀ NỘI}
+\newcommand{\SchoolName}{Trường Công nghệ Thông tin và Truyền thông}
+\newcommand{\ReportType}{BÁO CÁO BÀI TẬP LỚN MÔN HỌC}
+\newcommand{\SemesterName}{Học kỳ 2025.2}
+\newcommand{\ReportTitle}{Thiết kế nền tảng trò chơi nhúng trên STM32F429 với engine đồ họa 2D/3D dựa trên driver ILI9341}
+\newcommand{\CourseName}{Hệ nhúng}
+\newcommand{\CourseCode}{IT4210}
+\newcommand{\InstructorName}{TS. Đỗ Công Thuần}
+\newcommand{\ClassCode}{166152}
+\newcommand{\ReportStudents}{%
+  \StudentRow{Nguyễn Quý Đức}{20235682}%
+  \StudentRow{Trần Đăng Sinh}{20235821}%
+  \StudentRow{Nguyễn Hồng Dương}{20235693}%
+  \StudentRow{Bùi Quang Phương}{20235809}%
+}
+\newcommand{\SubmissionPlace}{Hà Nội}
+\newcommand{\SubmissionYear}{2026}
+
+\begin{document}
+\hypersetup{pageanchor=false}
+\input{cover}
+
+\hypersetup{pageanchor=true}
+\pagenumbering{roman}
+\input{chapters/abstract}
+\begingroup
+\footnotesize
+\setstretch{1.0}
+\tableofcontents
+\endgroup
+\clearpage
+
+\pagenumbering{arabic}
+\input{chapters/chap1}
+\input{chapters/chap2}
+\input{chapters/chap3}
+\input{chapters/chap4}
+\input{chapters/chap5}
+
+\input{chapters/bib}
+\end{document}

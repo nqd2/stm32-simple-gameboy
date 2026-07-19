@@ -1,0 +1,128 @@
+\usepackage{fontspec}
+\setmainfont{TeX Gyre Termes}
+\usepackage[a4paper,left=3cm,right=2.5cm,top=2.5cm,bottom=2.5cm]{geometry}
+\usepackage{graphicx}
+\usepackage{xcolor}
+\usepackage{titlesec}
+\usepackage{setspace}
+\usepackage{amsmath}
+\usepackage{array}
+\usepackage{booktabs}
+\usepackage{tabularx}
+\usepackage{float}
+\usepackage{caption}
+\usepackage{subcaption}
+\usepackage{enumitem}
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+\usepackage{listings}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta,positioning,shapes.geometric,fit}
+\usepackage{xurl}
+\usepackage{hyperref}
+\usepackage{fancybox}
+
+\definecolor{HUSTRed}{HTML}{B5121B}
+\definecolor{HUSTDarkRed}{HTML}{841018}
+\definecolor{SoftGray}{HTML}{F3F4F6}
+\definecolor{MidGray}{HTML}{6B7280}
+
+\graphicspath{{images/}{../docs/media/}}
+\hypersetup{%
+  colorlinks=true,
+  linkcolor=HUSTDarkRed,
+  citecolor=HUSTDarkRed,
+  urlcolor=HUSTDarkRed,
+  pdfauthor={Nhóm sinh viên thực hiện},
+  pdftitle={Thiết kế nền tảng trò chơi nhúng trên STM32F429 với bộ dựng hình 3D phần mềm}
+}
+
+\setcounter{tocdepth}{2}
+\setcounter{secnumdepth}{2}
+\setstretch{1.17}
+\setlength{\parindent}{1.25cm}
+\setlength{\parskip}{0pt}
+\setlength{\emergencystretch}{2em}
+\widowpenalty=10000
+\clubpenalty=10000
+\displaywidowpenalty=10000
+
+\titleformat{\chapter}[display]
+  {\normalfont\bfseries}
+  {\large\color{HUSTRed}\MakeUppercase{Chương~\thechapter}}
+  {0.7ex}
+  {\Huge\color{black}}
+  [\vspace{0.5ex}{\color{HUSTRed}\titlerule}]
+\titlespacing*{\chapter}{0pt}{15pt}{2.1ex}
+
+\titleformat{\section}
+  {\normalfont\Large\bfseries}
+  {\color{HUSTRed}\thesection}
+  {0.7em}
+  {}
+\titlespacing*{\section}{0pt}{1.9ex plus 0.3ex}{0.8ex}
+
+\titleformat{\subsection}
+  {\normalfont\large\bfseries}
+  {\color{HUSTRed}\thesubsection}
+  {0.7em}
+  {}
+\titlespacing*{\subsection}{0pt}{1.7ex plus 0.3ex}{0.7ex}
+
+\renewcommand{\contentsname}{Mục lục}
+\renewcommand{\figurename}{Hình}
+\renewcommand{\tablename}{Bảng}
+\renewcommand{\bibname}{Tài liệu tham khảo}
+\floatname{algorithm}{Thuật toán}
+\algrenewcommand\algorithmicrequire{\textbf{Đầu vào:}}
+\algrenewcommand\algorithmicensure{\textbf{Đầu ra:}}
+\algrenewcommand\algorithmicend{\textbf{kết thúc}}
+\algrenewcommand\algorithmicdo{\textbf{thực hiện}}
+\algrenewcommand\algorithmicwhile{\textbf{trong khi}}
+\algrenewcommand\algorithmicfor{\textbf{với}}
+\algrenewcommand\algorithmicif{\textbf{nếu}}
+\algrenewcommand\algorithmicthen{\textbf{thì}}
+\algrenewcommand\algorithmicelse{\textbf{ngược lại}}
+\algrenewcommand\algorithmicreturn{\textbf{trả về}}
+
+\captionsetup{font=small,labelfont=bf,labelsep=period}
+\setlist[itemize]{leftmargin=1.8em,itemsep=0.35ex,topsep=0.6ex}
+\setlist[enumerate]{leftmargin=2.1em,itemsep=0.35ex,topsep=0.6ex}
+\renewcommand{\arraystretch}{1.18}
+\newcolumntype{Y}{>{\raggedright\arraybackslash}X}
+\newcolumntype{L}[1]{>{\raggedright\arraybackslash}p{#1}}
+\newcolumntype{C}[1]{>{\centering\arraybackslash}p{#1}}
+
+\lstset{%
+  basicstyle=\ttfamily\small,
+  columns=fullflexible,
+  keepspaces=true,
+  frame=single,
+  rulecolor=\color{MidGray},
+  backgroundcolor=\color{SoftGray},
+  breaklines=true,
+  showstringspaces=false,
+  xleftmargin=0.4em,
+  xrightmargin=0.4em
+}
+
+\tikzset{%
+  block/.style={draw=HUSTRed,rounded corners=2pt,fill=SoftGray,
+    align=center,minimum height=8mm,text width=27mm,font=\small},
+  compactblock/.style={draw=HUSTRed,rounded corners=2pt,fill=SoftGray,
+    align=center,minimum height=8mm,text width=23mm,font=\small},
+  flow/.style={-{Latex[length=2mm]},thick,HUSTDarkRed},
+  pendingflow/.style={-{Latex[length=2mm]},thick,dashed,MidGray}
+}
+
+\newcommand{\pendingvalue}[1]{%
+  \textcolor{HUSTRed}{\bfseries CẦN #1}%
+}
+\newcommand{\figureplaceholder}[2][0.88\textwidth]{%
+  \begin{center}
+    \fcolorbox{HUSTRed}{SoftGray}{%
+      \parbox[c][3.0cm][c]{#1}{\centering\color{HUSTDarkRed}\bfseries #2}%
+    }
+  \end{center}
+}
+\newcommand{\StudentRow}[2]{#1 & #2\\}

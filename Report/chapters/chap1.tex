@@ -1,0 +1,65 @@
+\chapter{Tổng quan đề tài}
+\label{chap:overview}
+
+\section{Bối cảnh và động lực}
+
+Các hệ thống nhúng hiện đại có đủ năng lực để thực hiện giao diện đồ họa và trò chơi tương tác mà không cần hệ điều hành. Đây là bài toán phù hợp để khảo sát đồng thời nhiều nội dung của kỹ thuật máy tính: cấu hình ngoại vi, quản lý bộ nhớ, xử lý thời gian thực, mô hình trạng thái, giao tiếp không dây và thuật toán đồ họa. STM32F429ZIT6 sử dụng lõi Arm Cortex-M4 có FPU, tích hợp 2 MB Flash và tổng cộng 256 KB SRAM theo tài liệu của nhà sản xuất~\cite{stm32datasheet}. Cấu hình này đủ để xây dựng một thiết bị chơi game nhỏ, nhưng vẫn buộc người thiết kế phải kiểm soát chặt bộ đệm đồ họa và chi phí tính toán.
+
+Đề tài phát triển \textit{STM32 Retro Play}, một nền tảng gồm menu chọn trò chơi, Stack 3D và Tetris. Stack 3D đặt trọng tâm vào bộ dựng hình ba chiều viết hoàn toàn bằng C; Tetris đại diện cho trò chơi lưới hai chiều có luật va chạm, xoay khối và tính điểm. Hệ thống hiển thị trên LCD ILI9341 $320\times240$ và nhận lệnh từ nút vật lý hoặc cầu nối Bluetooth qua ESP32. Toàn bộ phân tích trong báo cáo bám theo mã nguồn của dự án.
+
+\section{Bài toán cần giải quyết}
+
+Một khung hình đầy đủ ở định dạng RGB565 cần $320\times240\times2=153600$ byte. Nếu bổ sung Z-buffer 16 bit cho dựng hình 3D, riêng hai framebuffer đã cần 307200 byte, lớn hơn vùng RAM 192 KiB mà linker hiện dành cho dữ liệu thông thường. Bên cạnh giới hạn bộ nhớ, hệ thống còn phải xử lý luật của hai trò chơi, cập nhật theo thời gian, dựng giao diện và truyền số lượng lớn điểm ảnh qua SPI mà không dùng hệ điều hành.
+
+Bài toán được chia thành bốn nhóm:
+\begin{itemize}
+  \item xây dựng kiến trúc mô-đun để menu và các trò chơi dùng chung đầu vào, hiển thị và vòng lặp chính;
+  \item hiện thực bộ dựng hình 3D có phép chiếu phối cảnh, loại mặt khuất, chiếu sáng phẳng và kiểm tra độ sâu;
+  \item hiện thực luật Stack 3D và Tetris với trạng thái trò chơi rõ ràng;
+  \item tích hợp đường điều khiển từ PC qua Bluetooth Classic, ESP32 và UART2 trên STM32.
+\end{itemize}
+
+\section{Mục tiêu}
+
+Mục tiêu tổng quát là tạo một nguyên mẫu nền tảng trò chơi nhúng chạy trực tiếp trên STM32F429 và có cấu trúc đủ rõ để bổ sung trò chơi mới. Các mục tiêu cụ thể gồm:
+\begin{enumerate}
+  \item Hiển thị menu và hai trò chơi trên LCD ILI9341 ở chế độ ngang;
+  \item Ánh xạ ký tự đầu vào thành hành động logic dùng chung cho menu, Stack 3D và Tetris;
+  \item Duy trì luật chơi, điểm số, màn hình kết thúc và thao tác khởi động lại;
+  \item Ghi nhận trung thực phần đã hiện thực, phần mới cấu hình và phần chưa có số đo thực nghiệm.
+\end{enumerate}
+
+\section{Phạm vi và giới hạn}
+
+Phạm vi báo cáo bao gồm mã ứng dụng trong \texttt{Core/}, cầu nối trong \texttt{Others/}, cấu hình STM32CubeMX và các thư viện STM32CubeF4 được repository sử dụng.
+
+\section{Yêu cầu hệ thống}
+
+Bảng~\ref{tab:requirements} tổng hợp các yêu cầu có thể đối chiếu trực tiếp với mã nguồn và bằng chứng trong repository.
+
+\begin{table}[H]
+\centering
+\small
+\caption{Yêu cầu chính của nền tảng}
+\label{tab:requirements}
+\begin{tabularx}{\textwidth}{@{}p{0.16\textwidth}Y Y@{}}
+\toprule
+\textbf{Nhóm} & \textbf{Yêu cầu} & \textbf{Tiêu chí đối chiếu} \\
+\midrule
+Hiển thị & Xuất giao diện $320\times240$ ở định dạng RGB565 & Có driver ILI9341 và truyền khối điểm ảnh qua SPI5 \\
+Đầu vào & Dùng chung hành động lên, xuống, trái, phải và chọn & Mọi ký tự đi qua \texttt{InputManager\_MapCharacter} \\
+Stack 3D & Cắt phần thừa, tạo khối rơi và tăng tốc theo điểm & Kích thước khối mới bằng phần giao nhau với khối đỉnh \\
+Tetris & Hỗ trợ bảy tetromino, xoay, xóa dòng, điểm và cấp độ & Lưới $20\times10$, kiểm tra va chạm trước mọi dịch chuyển \\
+Bộ nhớ & Không cấp phát đồng thời framebuffer màu và độ sâu toàn màn hình & Dựng theo hai chunk, mỗi chunk cao 120 dòng \\
+Tính đúng đắn & Không tuyên bố kết quả chưa có bằng chứng & Chỉ số chưa đo và ảnh thiếu phải có nhãn chờ \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\subsection{Yêu cầu chức năng}
+
+Hệ thống phải khởi tạo được màn hình ILI9341 ở chế độ ngang, hiển thị menu lựa chọn và chạy được hai trò chơi Stack 3D và Tetris. Người dùng phải điều hướng được menu, thực hiện các thao tác đặc trưng của từng trò chơi, xem điểm số, nhận biết trạng thái game over, khởi động lại trò chơi hoặc quay về menu. Lệnh điều khiển được tiếp nhận từ nút PA0 và từ bàn phím PC thông qua cầu nối Bluetooth Classic trên ESP32. Dữ liệu từ ESP32 được chuyển tới STM32 bằng UART2 và chuẩn hóa thành tập hành động dùng chung trước khi chuyển cho menu hoặc game.
+
+\subsection{Yêu cầu phi chức năng}
+
+Nguyên mẫu phải hoạt động ổn định trên STM32F429ZIT6 mà không cần RTOS, không vượt vùng RAM do linker cấp cho dữ liệu thông thường, và không cấp phát động trong vòng lặp dựng hình. Thiết kế phần mềm cần có ranh giới mô-đun rõ ràng để có thể bổ sung trò chơi mới. Hệ thống ghép nối phải đủ chắc chắn cho việc trình diễn trên bàn; dây nguồn và tín hiệu cần được cố định, không để chân tín hiệu ở trạng thái không xác định. Giao diện phải đọc được trên màn hình $320\times240$, phản hồi đầu vào trong quá trình truyền khung hình, và tài liệu phải cho phép người khác build, flash và chạy lại project.
