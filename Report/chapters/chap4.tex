@@ -1,0 +1,80 @@
+\chapter{Cài đặt, kết quả và đánh giá}
+\label{chap:deployment}
+
+\section{Môi trường phát triển và cách cài đặt}
+
+Mã nguồn project được lưu tại \url{https://github.com/nqd2/stm32-simple-gameboy}. File cấu hình \path{stm3d.ioc} được tạo cho STM32F429ZITx bằng STM32CubeMX 6.18.0; toolchain đích là STM32CubeIDE. Firmware ESP32 sử dụng Arduino core for ESP32 và thư viện \path{BluetoothSerial}. Chương trình điều khiển trên PC sử dụng Python 3. Các version không được khóa trong repository phải được kiểm tra lại trên máy build nếu cần tái tạo chính xác môi trường.
+
+Quy trình cài đặt gồm:
+\begin{enumerate}
+  \item Clone repository và import project \path{stm3d} vào STM32CubeIDE bằng chức năng \textit{Existing Projects into Workspace};
+  \item Mở \path{stm3d.ioc}, kiểm tra target STM32F429ZITx, sinh lại mã nếu thay đổi cấu hình, sau đó build cấu hình Debug;
+  \item Kết nối ST-LINK, flash firmware lên STM32F429 và nối LCD ILI9341 theo bảng chân trong Chương~\ref{chap:architecture};
+  \item Build và nạp \path{Others/esp32sketch/esp32sketch.ino} lên ESP32, nối GPIO17 của ESP32 với PA3 của STM32 và nối chung GND;
+  \item Pair thiết bị \path{ESP32_Bridge_Logger} với PC, cài Python và chạy lệnh \path{python Others/bluetooth.py} để gửi phím.
+\end{enumerate}
+
+\section{Các mô-đun cài đặt chính}
+
+Phần cài đặt được chia thành bốn lớp. Lớp phần cứng gồm HAL, cấu hình clock, GPIO, DMA, SPI5 và USART2. Lớp driver gồm ILI9341, font, UART nhận vòng và ánh xạ đầu vào. Lớp nền tảng gồm đồ họa 2D/3D và trình quản lý trạng thái. Lớp ứng dụng gồm menu, Stack 3D và Tetris. Phía ngoài STM32 có ESP32 làm cầu nối byte Bluetooth--UART và script Python bắt phím trên PC. Ranh giới này giúp logic game chỉ phụ thuộc \texttt{InputAction\_t} và các hàm render, không phụ thuộc trực tiếp vào Bluetooth hoặc thanh ghi ngoại vi.
+
+\section{Phân công và mức độ đóng góp}
+
+Nhóm thống nhất mức đóng góp tổng là 25\% cho mỗi thành viên. Bảng~\ref{tab:contributions} tính trên 13 commit kỹ thuật trước commit bổ sung tài liệu báo cáo. Số commit chỉ phản ánh cách chia lịch sử theo phần việc chính; một commit có thể chứa mã sinh tự động hoặc thay đổi giao thoa giữa nhiều mô-đun nên không được dùng riêng lẻ để suy ra khối lượng công việc.
+
+\begin{table}[H]
+\centering
+\scriptsize
+\caption{Phân công và đóng góp của thành viên}
+\label{tab:contributions}
+\begin{tabularx}{\textwidth}{@{}L{0.18\textwidth}L{0.13\textwidth}Y C{0.09\textwidth}C{0.09\textwidth}@{}}
+\toprule
+\textbf{Thành viên} & \textbf{GitHub} & \textbf{Nhiệm vụ chính} & \textbf{Commit} & \textbf{Đóng góp} \\
+\midrule
+Nguyễn Quý Đức & \texttt{nqd2} & Xây dựng engine đồ họa 2D/3D từ driver ILI9341; tích hợp SPI DMA và nền tảng hiển thị & 5 & 25\% \\
+Bùi Quang Phương & \texttt{F3ust} & Điều khiển Bluetooth PC--ESP32--STM32; chuẩn hóa đầu vào và menu chọn hai game & 3 & 25\% \\
+Trần Đăng Sinh & \texttt{MikoUwU24} & Thiết kế, cài đặt và chuẩn bị demo trò chơi Stack 3D & 2 & 25\% \\
+Nguyễn Hồng Dương & \texttt{BlackHoleHiHi} & Thiết kế và cài đặt trò chơi Tetris & 3 & 25\% \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+Email dùng để nhận diện commit lần lượt là \nolinkurl{nguyenquyduc_hsgs20@hus.edu.vn}, \nolinkurl{hd3876536@gmail.com}, \nolinkurl{ctan4991@gmail.com} và \nolinkurl{nguyenhongduong01092005@gmail.com}.
+
+\section{Kết quả và bằng chứng demo}
+
+Nguyên mẫu đã hiển thị được menu và hai trò chơi trên LCD ILI9341. Stack 3D có chuyển động luân phiên theo hai trục, cắt phần thừa, mảnh rơi, điểm số và camera theo tháp. Tetris có bảy tetromino, xoay, dịch chuyển, soft drop, hard drop, xóa dòng, điểm và cấp độ. Hai game dùng chung menu, đầu vào và luồng game over/restart.
+
+Bằng chứng demo được lưu cùng repository để link còn hiệu lực trong suốt học kỳ:
+\begin{itemize}
+  \item Video Stack 3D: \href{https://github.com/nqd2/stm32-simple-gameboy/blob/main/docs/media/stack-3d-demo.mp4}{docs/media/stack-3d-demo.mp4};
+  \item Ảnh Stack 3D: \href{https://github.com/nqd2/stm32-simple-gameboy/blob/main/docs/media/stack-3d-demo-cover.png}{stack-3d-demo-cover.png};
+  \item Ảnh Tetris: \href{https://github.com/nqd2/stm32-simple-gameboy/blob/main/docs/media/tetris-demo-cover.png}{tetris-demo-cover.png}.
+\end{itemize}
+
+\section{Đánh giá}
+
+\begin{table}[H]
+\centering
+\small
+\caption{Đối chiếu kết quả với yêu cầu}
+\label{tab:evaluation}
+\begin{tabularx}{\textwidth}{@{}L{0.26\textwidth}C{0.16\textwidth}Y@{}}
+\toprule
+\textbf{Yêu cầu} & \textbf{Trạng thái} & \textbf{Bằng chứng/giới hạn} \\
+\midrule
+Menu và hai trò chơi & Đạt & Mã nguồn, ảnh và video demo trong repository \\
+Đồ họa 2D/3D trên ILI9341 & Đạt & Renderer, Z-buffer theo chunk và SPI5 DMA \\
+Điều khiển không dây & Đạt & PC--Bluetooth SPP--ESP32--UART2 DMA \\
+Phản hồi thời gian thực & Đạt một phần & Có polling UART trong lúc SPI DMA; chưa đo định lượng input latency và FPS \\
+Độ hoàn thiện cơ khí & Đạt mức nguyên mẫu & Mạch ghép nối phục vụ demo; chưa có PCB/vỏ bảo vệ riêng \\
+Khả năng mở rộng & Đạt & Giao diện game và \texttt{InputAction\_t} tách khỏi nguồn nhập cụ thể \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+Ưu điểm chính là kiến trúc mô-đun, renderer không phụ thuộc thư viện đồ họa ngoài, tiết kiệm RAM bằng chunk và hỗ trợ hai nguồn điều khiển. Hạn chế gồm chưa đo FPS/input latency bằng thiết bị ngoài, chỉ có một nút vật lý cho hành động chọn, giao tiếp Bluetooth phụ thuộc ESP32 và PC, chưa có âm thanh, PCB hoặc vỏ hoàn thiện.
+
+\section{AI-assisted disclaimer}
+
+Nhóm \textbf{có sử dụng} công cụ AI để hỗ trợ rà soát cấu trúc repository, đối chiếu báo cáo với mã nguồn, biên tập LaTeX và phát hiện mô tả không còn đúng sau khi project chuyển từ I2C sang UART2. Các prompt chính yêu cầu: phân tích yêu cầu báo cáo cuối kỳ; xác định module phần cứng/phần mềm từ repository; lập bảng phân công và commit; kiểm tra tính nhất quán của thông số SPI, UART, DMA; và đề xuất cách trình bày kết quả, giới hạn. Nhóm chịu trách nhiệm kiểm tra lại nội dung kỹ thuật, lựa chọn thiết kế và kết quả cuối cùng; AI không thay thế việc kiểm thử trên phần cứng.

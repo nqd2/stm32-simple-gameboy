@@ -1,0 +1,153 @@
+\chapter{Thiết kế và hiện thực}
+\label{chap:implementation}
+
+\section{Quản lý trạng thái ứng dụng}
+
+Ứng dụng có ba trạng thái cấp cao: menu chính, Stack 3D và Tetris. Mảng cấu hình \texttt{game\_screens} lưu tên, hitbox và các con trỏ hàm của từng trò chơi. State manager chỉ gọi qua giao diện \texttt{start}, \texttt{restart}, \texttt{update}, \texttt{render}, \texttt{handle\_play\_action} và \texttt{is\_game\_over}. Cách tổ chức này cho phép menu xử lý hai game theo cùng một luồng mà không cần kiểm tra loại game tại nhiều vị trí.
+
+Trong menu, WASD dịch con trỏ 15 điểm ảnh theo mỗi lệnh. Khi nhận hành động chọn, state manager kiểm tra con trỏ có nằm trong hitbox của thẻ Stack hoặc Tetris hay không. Trong trạng thái chơi, lệnh được chuyển cho game hiện tại. Khi game over, con trỏ xuất hiện lại để người dùng chọn \texttt{RESTART} hoặc \texttt{MENU}.
+
+Nút PA0 chỉ tạo \texttt{INPUT\_ACTION\_SELECT}. Vì vị trí con trỏ khởi tạo $(160,120)$ nằm giữa hai thẻ menu, riêng nút này chưa đủ để chọn game từ lúc khởi động. Người dùng cần nguồn lệnh có các hướng di chuyển, hiện là cầu nối Bluetooth.
+
+\section{Chuẩn hóa đầu vào}
+
+Kiểu \texttt{InputAction\_t} gồm sáu giá trị: không hành động, lên, xuống, trái, phải và chọn. Bảng~\ref{tab:controls} cho thấy ánh xạ thực tế trong mã nguồn. Enter và các mã phím mũi tên nhiều byte chưa được xử lý.
+
+\begin{table}[H]
+  \centering
+  \caption{Ánh xạ đầu vào của phiên bản hiện tại}
+  \label{tab:controls}
+  \begin{tabularx}{0.78\textwidth}{@{}C{0.18\textwidth}Y Y@{}}
+    \toprule
+    \textbf{Ký tự}        & \textbf{Hành động} & \textbf{Cách dùng}                         \\
+    \midrule
+    \texttt{W}/\texttt{w} & Lên                & Di chuyển con trỏ hoặc xoay tetromino      \\
+    \texttt{S}/\texttt{s} & Xuống              & Di chuyển con trỏ hoặc soft drop           \\
+    \texttt{A}/\texttt{a} & Trái               & Di chuyển con trỏ hoặc khối Tetris         \\
+    \texttt{D}/\texttt{d} & Phải               & Di chuyển con trỏ hoặc khối Tetris         \\
+    \texttt{1}, Space     & Chọn               & Chọn menu, đặt khối Stack hoặc hard drop   \\
+    PA0                   & Chọn               & Tạo cùng hành động chọn sau debounce 50 ms \\
+    \bottomrule
+  \end{tabularx}
+\end{table}
+
+\section{Pipeline dựng hình 3D}
+
+Bộ dựng hình không dùng thư viện đồ họa ngoài. Mỗi đối tượng gồm một mesh, ma trận World và màu RGB565. Với đỉnh $\mathbf{p}$, tọa độ clip được tính theo
+\begin{equation}
+  \mathbf{p}_{clip}=\mathbf{P}\mathbf{V}\mathbf{W}\mathbf{p},
+  \label{eq:mvp}
+\end{equation}
+trong đó $\mathbf{W}$ biến đổi mô hình, $\mathbf{V}$ biểu diễn camera và $\mathbf{P}$ là phép chiếu phối cảnh. Sau phép chia cho thành phần $w$, tọa độ chuẩn hóa được ánh xạ sang màn hình $320\times240$. Giá trị $1/w$ được nội suy và lượng tử hóa về 16 bit để so sánh độ sâu.
+
+Với mỗi tam giác, renderer tính diện tích có hướng trong không gian màn hình. Tam giác có diện tích không dương bị loại như mặt quay lưng. Pháp tuyến trong không gian thế giới được tính bằng tích có hướng của hai cạnh. Cường độ sáng là tích vô hướng với vector ánh sáng, sau đó kết hợp thành phần ambient 0,55 để tạo màu phẳng trên mỗi mặt.
+
+\begin{figure}[H]
+  \centering
+  \resizebox{\textwidth}{!}{%
+    \begin{tikzpicture}[node distance=6mm]
+      \node[compactblock] (object) {Đối tượng\\mesh + World};
+      \node[compactblock, right=of object] (mvp) {World--View--Projection};
+      \node[compactblock, right=of mvp] (project) {Chiếu đỉnh\\về màn hình};
+      \node[compactblock, right=of project] (cull) {Loại mặt\\quay lưng};
+      \node[compactblock, right=of cull] (light) {Chiếu sáng\\phẳng};
+      \node[compactblock, right=of light] (raster) {Scanline +\\Z-buffer};
+      \node[compactblock, right=of raster] (overlay) {HUD/overlay\\theo chunk};
+      \node[compactblock, right=of overlay] (output) {RGB565\\SPI5 - LCD};
+      \draw[flow] (object) -- (mvp);
+      \draw[flow] (mvp) -- (project);
+      \draw[flow] (project) -- (cull);
+      \draw[flow] (cull) -- (light);
+      \draw[flow] (light) -- (raster);
+      \draw[flow] (raster) -- (overlay);
+      \draw[flow] (overlay) -- (output);
+    \end{tikzpicture}%
+  }
+  \caption{Các bước dựng một khung hình 3D}
+  \label{fig:render-pipeline}
+\end{figure}
+
+Tam giác được sắp theo tung độ rồi chia thành tam giác đáy phẳng hoặc đỉnh phẳng. Mỗi scanline nội suy biên trái, biên phải và độ sâu. Pixel chỉ ghi màu khi giá trị độ sâu mới lớn hơn giá trị đang lưu.
+
+\begin{algorithm}[H]
+  \caption{Dựng nhiều đối tượng theo từng chunk}
+  \label{alg:chunk-render}
+  \begin{algorithmic}[1]
+    \Require Danh sách đối tượng, ma trận View, Projection
+    \Ensure Hai dải điểm ảnh được gửi tuần tự tới LCD
+    \For{$chunk \gets 0$ đến $1$}
+    \State Xóa color buffer và Z-buffer của 120 dòng hiện tại
+    \State Vẽ nền của chunk
+    \For{mỗi đối tượng}
+    \State Tính $MVP=P\times V\times W$ và chiếu các đỉnh
+    \For{mỗi mặt tam giác giao với chunk}
+    \If{mặt hướng về camera}
+    \State Tính màu theo pháp tuyến và nguồn sáng
+    \State Raster hóa scanline, chỉ ghi pixel vượt kiểm tra độ sâu
+    \EndIf
+    \EndFor
+    \EndFor
+    \State Vẽ HUD hoặc con trỏ lên color buffer
+    \State Đổi thứ tự byte RGB565 và truyền chunk qua SPI5
+    \EndFor
+  \end{algorithmic}
+\end{algorithm}
+
+\section{Tối ưu bộ nhớ theo chunk}
+
+Hai mảng tĩnh \texttt{chunk\_color\_buffer} và \texttt{chunk\_z\_buffer} đều có $320\times120$ phần tử 16 bit. Tổng dung lượng là
+\begin{equation}
+  M_{chunk}=2\times320\times120\times2=153600\ \text{byte}=150\ \text{KiB}.
+  \label{eq:chunk-memory}
+\end{equation}
+Nếu lưu cả màu và độ sâu cho toàn màn hình, dung lượng tương ứng là
+\begin{equation}
+  M_{full}=2\times320\times240\times2=307200\ \text{byte}=300\ \text{KiB}.
+  \label{eq:full-memory}
+\end{equation}
+Vùng RAM thông thường dài 192 KiB và CCMRAM 64 KiB. Hai framebuffer toàn màn hình vượt riêng vùng RAM 192 KiB, trong khi phương án chunk giảm một nửa dung lượng. Thiết kế hiện tại vì thế để lại ít biên RAM cho middleware và trạng thái game.
+
+Mỗi chunk được truyền xuống LCD thông qua kênh DMA2 Stream 4 của SPI5 ở chế độ không chặn (\texttt{HAL\_SPI\_Transmit\_DMA}). Trong thời gian chờ DMA hoàn thành việc truyền dữ liệu màn hình, CPU liên tục gọi hàm thăm dò \texttt{espuart\_poll()} để tiếp nhận và xử lý các sự kiện điều khiển từ ESP32 qua UART2. Cách xen kẽ này giảm thời gian đầu vào phải chờ so với truyền SPI chặn, nhưng project hiện chưa có phép đo độ trễ đầu vào bằng thiết bị chuyên dụng.
+
+\section{Thiết kế Stack 3D}
+
+Trạng thái Stack chứa tối đa 20 khối đã đặt, một khối đang di chuyển và bốn mảnh rơi. Mỗi lượt đổi trục chuyển động giữa $X$ và $Z$. Vận tốc tăng theo điểm số người chơi:
+\begin{equation}
+  v=\min(1.2+0.08\times score,\ 3.0)\ \text{đơn vị/s}.
+\end{equation}
+Khối hoạt động đi lại trong khoảng $\pm2.5$ quanh tâm khối đỉnh. Khi người chơi nhấn chọn, thuật toán lấy khoảng giao nhau trên trục hiện tại:
+\begin{equation}
+  overlap=\min(a_{\max},t_{\max})-\max(a_{\min},t_{\min}),
+  \label{eq:stack-overlap}
+\end{equation}
+với $a$ (active) là khối hoạt động và $t$ (top) là khối đỉnh. Nếu \textit{overlap} không dương, game chuyển sang game over. Ngược lại, phần giao trở thành khối mới; phần thừa trở thành mảnh rơi có gia tốc $4.5$ đơn vị/s$^2$. Camera nội suy về vị trí khối đỉnh để theo dõi tháp khi chiều cao tăng.
+
+Renderer tạo một cube mesh dùng chung, sau đó thay đổi ma trận tịnh tiến và tỉ lệ cho từng khối. Các đối tượng cùng chia sẻ Z-buffer theo chunk, vì vậy mảnh rơi và các tầng tháp che khuất nhau theo độ sâu thay vì phụ thuộc thứ tự vẽ.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.6\textwidth]{stack-gameplay-frame.png}
+\caption{Giao diện trò chơi Stack 3D với góc nhìn phối cảnh và bộ đệm độ sâu Z-buffer}
+\label{fig:stack-gameplay}
+\end{figure}
+
+
+
+\section{Thiết kế Tetris}
+
+Tetris dùng lưới $20\times10$ phần tử RGB565. Bảy tetromino được mô tả bởi bốn trạng thái xoay, mỗi trạng thái gồm bốn tọa độ tương đối. Trước mọi thao tác, \texttt{CheckCollision} kiểm tra biên trái/phải, đáy và các ô đã khóa. Khi xoay không hợp lệ tại chỗ, chương trình thử dịch một ô sang trái rồi một ô sang phải; đây là wall kick đơn giản trong Tetris cổ điển.
+
+Khi khối chạm đáy hoặc khối đã khóa, bốn ô được ghi vào lưới. Thuật toán quét từ hàng cuối lên trên; với hàng đầy, các hàng phía trên dịch xuống và chỉ số hàng được kiểm tra lại. Điểm cho một đến bốn dòng lần lượt là 40, 100, 300 và 1200, nhân với $level+1$. Cứ mười dòng, cấp độ tăng và khoảng rơi tự động giảm từ 0,80 giây xuống tối thiểu 0,08 giây.
+
+\begin{figure}[H]
+\centering
+\includegraphics[width=0.6\textwidth]{tetris-gameplay.png}
+\caption{Giao diện trò chơi Tetris hiển thị trên màn hình ILI9341}
+\label{fig:tetris-gameplay}
+\end{figure}
+
+
+
+\section{Tích hợp hiển thị và giao diện}
+
+Menu và Tetris vẽ trực tiếp vào color buffer theo chunk. Stack 3D dùng overlay callback để ghép điểm số, best score và hộp game over sau bước rasterization. Sau khi hoàn thành chunk, hàm gửi buffer đổi byte của từng giá trị RGB565 để byte cao được truyền trước, đặt vùng địa chỉ LCD rồi gửi dữ liệu qua SPI5.

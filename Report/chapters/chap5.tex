@@ -1,0 +1,25 @@
+\chapter{Kết luận và hướng phát triển}
+\label{chap:conclusion}
+
+\section{Kết quả đạt được}
+
+Đề tài đã xây dựng một nền tảng trò chơi nhúng có cấu trúc mô-đun trên STM32F429. Mã nguồn bao gồm vòng lặp ứng dụng, state manager, lớp chuẩn hóa đầu vào, driver LCD, thư viện đồ họa 2D/3D, Stack 3D, Tetris và cầu nối Bluetooth qua ESP32. Hai trò chơi dùng cùng cơ chế điều hướng menu và màn hình kết thúc, nhưng có mô hình xử lý khác nhau: Stack làm việc với khối hình trong không gian ba chiều, còn Tetris làm việc với lưới hai chiều.
+
+Bộ dựng hình phần mềm là kết quả kỹ thuật nổi bật. Pipeline có biến đổi ma trận, chiếu phối cảnh, loại mặt khuất, chiếu sáng phẳng, rasterization scanline và Z-buffer. Việc xử lý theo hai chunk 120 dòng giảm phần bộ nhớ màu và độ sâu từ 300 KiB xuống 150 KiB, đưa bài toán vào vùng có thể triển khai trên cấu hình linker hiện tại. Overlay theo chunk còn cho phép ghép HUD mà không cần framebuffer bổ sung.
+
+Video và các hình ảnh thực nghiệm trong repository ghi lại nguyên mẫu Stack 3D và Tetris chạy trên phần cứng, hiển thị quá trình chơi, điểm số và trạng thái kết thúc trò chơi.
+
+\section{Đóng góp của đề tài}
+
+Các đóng góp có thể đối chiếu gồm:
+\begin{itemize}
+  \item Một kiến trúc ứng dụng thống nhất cho menu và nhiều trò chơi trên vi điều khiển không dùng RTOS;
+  \item Một rasterizer 3D bằng C hỗ trợ nhiều đối tượng, Z-buffer, flat shading và overlay theo chunk;
+  \item Luật Stack 3D có tính giao khối, phần thừa rơi, tốc độ tăng và camera bám tháp;
+  \item Luật Tetris gồm bảy tetromino, xoay có dịch ngang đơn giản, xóa dòng, điểm, cấp độ và preview;
+  \item Đường điều khiển PC - Bluetooth SPP - ESP32 - UART2 DMA được tách khỏi logic game bằng \texttt{InputAction\_t}.
+\end{itemize}
+
+\section{Hạn chế và hướng phát triển}
+
+Phiên bản hiện tại chưa đo FPS và độ trễ, chưa có âm thanh, bộ điều khiển vật lý đầy đủ, PCB và vỏ. Hướng phát triển là đo hiệu năng, tối ưu rasterizer và truyền LCD, bổ sung âm thanh và lưu điểm, đồng thời chuẩn hóa giao diện đăng ký game.

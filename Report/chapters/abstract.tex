@@ -1,0 +1,10 @@
+\chapter*{Tóm tắt}
+\addcontentsline{toc}{chapter}{Tóm tắt}
+
+Báo cáo trình bày việc thiết kế một nền tảng trò chơi nhúng chạy trực tiếp trên vi điều khiển STM32F429ZIT6. Hệ thống tích hợp hai trò chơi có đặc điểm xử lý khác nhau: Stack 3D sử dụng bộ dựng hình ba chiều viết bằng C, còn Tetris sử dụng lưới hai chiều và cơ chế va chạm theo ô. Hình ảnh được xuất lên màn hình ILI9341 độ phân giải $320\times240$ qua SPI5. Người dùng điều khiển bằng nút PA0 hoặc bàn phím máy tính thông qua cầu nối Bluetooth Classic trên ESP32 và đường UART2 có DMA vòng.
+
+Đóng góp kỹ thuật chính của đề tài là bộ dựng hình phần mềm phù hợp với giới hạn bộ nhớ của vi điều khiển. Pipeline thực hiện biến đổi World--View--Projection, loại mặt khuất, chiếu sáng phẳng, raster hóa scanline và kiểm tra độ sâu. Thay vì cấp phát framebuffer màu và độ sâu cho toàn màn hình, hệ thống xử lý theo hai dải, mỗi dải cao 120 dòng. Hai bộ đệm theo dải chiếm 153600 byte, bằng một nửa phương án toàn khung hình.
+
+Mã nguồn đã bao gồm trình quản lý trạng thái, lớp ánh xạ đầu vào, hai trò chơi, driver màn hình và bộ dựng hình 2D/3D. ESP32 được cấp nguồn từ cổng USB OTG, còn dữ liệu điều khiển đi một chiều từ ESP32 đến STM32 qua UART2. Báo cáo đi kèm các hình ảnh thực nghiệm của cả hai trò chơi Stack 3D và Tetris chạy thực tế trên phần cứng nhằm xác minh hoạt động đúng đắn của hệ thống.
+\noindent\textbf{Từ khóa:} STM32F429, hệ thống nhúng, đồ họa 3D phần mềm, Z-buffer, ILI9341, Tetris, Bluetooth SPP.
+\clearpage
